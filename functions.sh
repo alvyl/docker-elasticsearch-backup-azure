@@ -35,9 +35,18 @@ make_backup () {
     fi
 
     BACKUP_LOCATION="/usr/share/elasticsearch/backup"
+    touch $BACKUP_LOCATION/snapshot-backup_snapshot
+
+    backupResult=$(curl -s -o /dev/null -w "%{http_code}" -XGET $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup)
+
+    if [[ "$backupResult" == "404" ]]; then
+        curl -X PUT -d '{ "type": "fs", "settings": { "compress": false, "location": "'$BACKUP_LOCATION'" } }' $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup
+    fi
+
+    snapshotName=$(date +%s | sha256sum | base64 | head -c 16 | tr '[:upper:]' '[:lower:]')
 
     # Initialise snapshot
-    res=$(curl -X PUT -d '{ "type": "fs", "settings": { "compress": false, "location": "'$BACKUP_LOCATION'" } }' $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup/backup_snapshot?wait_for_completion=true)
+    res=$(curl -X PUT $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup/$snapshotName?wait_for_completion=true)
 
     # res should look similar to this:
     # {"snapshot":{"snapshot":"backup_snapshot","version_id":1070499,"version":"1.7.4","indices":[],"state":"SUCCESS","start_time":"2016-08-31T13:32:07.883Z","start_time_in_millis":1472650327883,"end_time":"2016-08-31T13:32:07.925Z","end_time_in_millis":1472650327925,"duration_in_millis":42,"failures":[],"shards":{"total":0,"failed":0,"successful":0}}}
@@ -47,6 +56,11 @@ make_backup () {
     # exit if last command have problems
     if  [ "$snapshotResult" != "SUCCESS" ]; then
         echo "Error occurred in database dump process. Exiting now"
+
+        if [ "$DEBUG" == "true" ]; then
+            echo  $res
+        fi
+
         exit 1
     fi
 
@@ -60,6 +74,8 @@ make_backup () {
 
     # Remove file to save space
     rm -fR *.tar.gz
+
+    curl -X DELETE $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup/$snapshotName
 
     if  [ "$?" != "0" ]; then
         exit 1
