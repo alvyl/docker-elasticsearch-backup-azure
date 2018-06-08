@@ -8,7 +8,7 @@ RUN apt-get update -y -q && \
   rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g n azure-cli
-RUN n 0.12.7
+RUN n 8.11.2
 
 RUN mkdir -p /backup
 ADD . /backup

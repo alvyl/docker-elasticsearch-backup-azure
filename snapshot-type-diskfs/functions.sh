@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATETIME=`date +"%Y-%m-%d_%H-%M-$S"`
+DATETIME=`date +"%Y-%m-%d_%H-%M-%S"`
 
 make_backup () {
 
@@ -40,13 +40,17 @@ make_backup () {
     backupResult=$(curl -s -o /dev/null -w "%{http_code}" -XGET $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup)
 
     if [[ "$backupResult" == "404" ]]; then
-        curl -X PUT -d '{ "type": "fs", "settings": { "compress": false, "location": "'$BACKUP_LOCATION'" } }' $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup
+        curl -X PUT -d '{ "type": "fs", "settings": { "compress": false, "location": "'$BACKUP_LOCATION'" } }' --header "content-type: application/JSON" $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup
     fi
 
     snapshotName=$(date +%s | sha256sum | base64 | head -c 16 | tr '[:upper:]' '[:lower:]')
 
+    echo "SNAPSHOT NAME: $snapshotName"
+
     # Initialise snapshot
     res=$(curl -X PUT $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup/$snapshotName?wait_for_completion=true)
+
+    echo "SNAPSHOT INITIALIZATION: $res"
 
     # res should look similar to this:
     # {"snapshot":{"snapshot":"backup_snapshot","version_id":1070499,"version":"1.7.4","indices":[],"state":"SUCCESS","start_time":"2016-08-31T13:32:07.883Z","start_time_in_millis":1472650327883,"end_time":"2016-08-31T13:32:07.925Z","end_time_in_millis":1472650327925,"duration_in_millis":42,"failures":[],"shards":{"total":0,"failed":0,"successful":0}}}
@@ -64,8 +68,18 @@ make_backup () {
         exit 1
     fi
 
+echo -e "\n\t\t\t\t$BACKUP_LOCATION\n\n\t`ls -la $BACKUP_LOCATION`"
     # compress the file
     tar -zcvf $FILENAME-$DATETIME.tar.gz $BACKUP_LOCATION/*
+
+echo -e "\n\t\t\t\t$BACKUP_LOCATION\n\n\t`ls -la`\n\n\t`ls -la $BACKUP_LOCATION`"
+
+    if [ -e $FILENAME-$DATETIME.tar.gz ]
+    then
+        echo "File exists at $PWD : $FILENAME-$DATETIME.tar.gz" 
+    else
+        echo "tar gz file not found"
+    fi
 
     # Send to cloud storage
     /usr/local/bin/azure telemetry --disable
@@ -73,7 +87,7 @@ make_backup () {
     /usr/local/bin/azure storage blob upload -q $FILENAME-$DATETIME.tar.gz $CONTAINER -c "DefaultEndpointsProtocol=https;BlobEndpoint=https://$AZURE_STORAGE_ACCOUNT.blob.core.windows.net/;AccountName=$AZURE_STORAGE_ACCOUNT;AccountKey=$AZURE_STORAGE_ACCESS_KEY"
 
     # Remove file to save space
-    rm -fR *.tar.gz
+    # rm -fR *.tar.gz
 
     curl -X DELETE $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/backup/$snapshotName
 
