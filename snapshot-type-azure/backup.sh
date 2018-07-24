@@ -13,7 +13,7 @@ sed 's,{{AZURE_STORAGE_ACCOUNT}},'"${AZURE_STORAGE_ACCOUNT}"',g' -i /backup/func
 sed 's,{{AZURE_STORAGE_ACCESS_KEY}},'"${AZURE_STORAGE_ACCESS_KEY}"',g' -i /backup/functions.sh
 sed 's,{{FILENAME}},'"${FILENAME}"',g' -i /backup/functions.sh
 sed 's,{{CONTAINER}},'"${CONTAINER}"',g' -i /backup/functions.sh
-SED 'S,{{BACKUP_REPOSITORY}},'"$BACKUP_REPOSITORY"',g' -i /backup/functions.sh
+sed 's,{{BACKUP_REPOSITORY}},'"$BACKUP_REPOSITORY"',g' -i /backup/functions.sh
 
 if  [ "$ONE_SHOOT" == "true" ]; then
 
