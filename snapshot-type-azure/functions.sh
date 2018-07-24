@@ -9,7 +9,7 @@ make_backup () {
     export ELASTICSEARCH_HOST={{ELASTICSEARCH_HOST}}
     export ELASTICSEARCH_PORT={{ELASTICSEARCH_PORT}}
     export DEBUG={{DEBUG}}
-    export BACKUP_REPOSITORY-{{BACKUP_REPOSITORY}}
+    export BACKUP_REPOSITORY={{BACKUP_REPOSITORY}}
 
     if [ "$ELASTICSEARCH_PORT" == "" ]; then
         export ELASTICSEARCH_PORT="9200";
@@ -33,7 +33,7 @@ make_backup () {
     backupResult=$(curl -s -o /dev/null -w "%{http_code}" -XGET $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/$BACKUP_REPOSITORY)
 
     if [[ "$backupResult" == "404" ]]; then
-        curl -X PUT -d '{ "type": "azure", "settings": {  "container": "elasticsearch-snapshots","compress": true,} }' --header "content-type: application/JSON" $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/$BACKUP_REPOSITORY
+        curl -X PUT $ELASTICSEARCH_HOST:$ELASTICSEARCH_PORT/_snapshot/$BACKUP_REPOSITORY -d '{ "type": "azure", "settings": {  "container": "elasticsearch-snapshots","compress": true} }' --header "content-type: application/JSON"
     fi
 
     snapshotName=$FILENAME-$(date +%s | sha256sum | base64 | head -c 16 | tr '[:upper:]' '[:lower:]')-$DATETIME
