@@ -41,3 +41,29 @@ container will stop.
 ```bash
 docker build -t alvyl/docker-elasticsearch-backup-azure .
 ```
+
+**NOTE**: This code is tested in v2.4 and version - 6.3
+
+---
+### Steps for Elasticsearch backup in v2.4.X
+
+1. For elasticsearch 2.4 version we have to install elasticsearch driver. Run the following command from the elastic search installation folder.
+    ```sudo bin/plugin install cloud-azure```
+
+2. To enable Azure repositories, you have first to set your azure storage settings in elasticsearch.yml file
+
+    ```ruby
+    cloud:
+        azure:
+            storage:
+                my_account:
+                    account: your_azure_storage_account
+                    key: your_azure_storage_key
+    ```
+
+3. For latest es version, please refer to the official documentations.
+
+#### Useful links for v2.4
+
+1. Repository Plugin Home: https://www.elastic.co/guide/en/elasticsearch/plugins/2.4/repository.html
+1. Azure Plugin: https://www.elastic.co/guide/en/elasticsearch/plugins/2.4/cloud-azure-repository.html
